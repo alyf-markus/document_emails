@@ -52,13 +52,9 @@ function get_email_list_html(emails) {
 					${__("New Email")}
 				</button>
 			</div>
-			<div class="new-timeline">
-				<div class="timeline-items">
-					${emails.map(get_email_card_html).join("")}
-				</div>
-				<div class="no-emails text-muted text-center ${emails.length ? "hidden" : ""}">
-					${__("No Emails")}
-				</div>
+			${get_email_days_html(emails)}
+			<div class="no-emails text-muted text-center mt-3 ${emails.length ? "hidden" : ""}">
+				${__("No Emails")}
 			</div>
 		</div>
 	`;
@@ -83,56 +79,60 @@ function get_select_html(class_name, placeholder, options) {
 	`;
 }
 
+function get_email_days_html(emails) {
+	// emails come sorted by date, newest first
+	const emails_by_day = new Map();
+	for (const email of emails) {
+		const day = email.communication_date.slice(0, 10);
+		if (!emails_by_day.has(day)) emails_by_day.set(day, []);
+		emails_by_day.get(day).push(email);
+	}
+
+	return [...emails_by_day.entries()]
+		.map(([day, day_emails]) => {
+			const weekday = frappe.datetime
+				.str_to_obj(day)
+				.toLocaleDateString(frappe.boot.lang, { weekday: "long" });
+			return `
+				<div class="email-day">
+					<div class="email-day-title">${weekday}, ${frappe.datetime.str_to_user(day)}</div>
+					${day_emails.map(get_email_card_html).join("")}
+				</div>
+			`;
+		})
+		.join("");
+}
+
 function get_email_card_html(email) {
-	// mirrors frappe/public/js/frappe/form/templates/timeline_message_box.html
 	const escape = frappe.utils.escape_html;
 	const sender = email.sender_full_name || email.sender || "";
+	const time = frappe.datetime.str_to_user(email.communication_date).split(" ")[1];
 	const direction_color = email.sent_or_received === "Sent" ? "blue" : "green";
 	const document_url = frappe.utils.get_form_link(email.document_doctype, email.document_name);
 	const communication_url = frappe.utils.get_form_link("Communication", email.name);
 
 	return `
-		<div class="timeline-item email-item" data-name="${escape(email.name)}"
+		<div class="email-item" data-name="${escape(email.name)}"
 			data-document-type="${escape(email.document_doctype)}" data-direction="${escape(email.sent_or_received)}">
-			<div class="timeline-badge" title="${__("Email")}">${frappe.utils.icon("mail", "sm")}</div>
-			<div class="timeline-content frappe-card" style="cursor: pointer">
-				<div class="timeline-message-box">
-					<span class="flex justify-between m-1 mb-3">
-						<span class="text-color flex">
-							<span class="margin-right">${frappe.avatar(email.sender, "avatar-medium")}</span>
-							<div>
-								${escape(sender)}
-								<span> · </span>
-								<span class="text-muted">${frappe.datetime.str_to_user(email.communication_date)}</span>
-								<div class="my-1"><b>${escape(email.subject || __("No Subject"))}</b></div>
-								<div class="text-muted small">${__("To")}: ${escape(email.recipients || "")}</div>
-							</div>
-						</span>
-						<span class="actions" style="flex-shrink: 0; flex-direction: column;
-							justify-content: space-between; align-items: flex-end">
-							<span class="flex align-center" style="gap: var(--margin-sm)">
-								<span class="indicator-pill ${direction_color}">
-									<span class="small">${__(email.sent_or_received)}</span>
-								</span>
-								<a class="small" href="${document_url}" title="${__(email.document_doctype)}">
-									${__(email.document_doctype)}: ${escape(email.document_name)}
-								</a>
-							</span>
-							<!-- no .action-btn: inside a form field Frappe positions it absolutely in the corner -->
-							<a href="${communication_url}" title="${__("Open Communication")}"
-								style="--icon-stroke: var(--text-muted)">
-								${frappe.utils.icon("link-url", "sm")}
-							</a>
-						</span>
+			<b class="email-time">${time}</b>
+			<div class="email-body">
+				<div class="email-line">
+					<b>${escape(email.subject || __("No Subject"))}</b>
+					<span>
+						<span class="indicator-pill ${direction_color}">${__(email.sent_or_received)}</span>
+						<a class="small" href="${document_url}">
+							${__(email.document_doctype)}: ${escape(email.document_name)}
+						</a>
+						<a class="email-link" href="${communication_url}" title="${__("Open Communication")}">
+							${frappe.utils.icon("link-url", "sm")}
+						</a>
 					</span>
-					<div class="content email-preview text-muted" style="display: -webkit-box;
-						-webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">
-						${escape(email.preview)}
-					</div>
-					<div class="content email-full hidden">
-						${frappe.dom.remove_script_and_style(email.content || "")}
-					</div>
 				</div>
+				<div class="text-muted small ellipsis">
+					${escape(sender)} · ${__("To")}: ${escape(email.recipients || "")}
+				</div>
+				<div class="email-preview small ellipsis">${escape(email.preview)}</div>
+				<div class="email-full hidden">${frappe.dom.remove_script_and_style(email.content || "")}</div>
 			</div>
 		</div>
 	`;
@@ -142,7 +142,7 @@ function setup_email_list(frm, $wrapper) {
 	$wrapper.find(".new-email").on("click", () => frm.timeline.compose_mail());
 
 	// click on a card switches between preview and full email
-	$wrapper.find(".email-item .timeline-content").on("click", (event) => {
+	$wrapper.find(".email-item").on("click", (event) => {
 		if ($(event.target).closest("a").length) return;
 
 		const $card = $(event.currentTarget);
@@ -161,6 +161,11 @@ function setup_email_list(frm, $wrapper) {
 				(!direction || $item.attr("data-direction") === direction);
 			$item.toggleClass("hidden", !visible);
 			visible_count += visible;
+		});
+
+		$wrapper.find(".email-day").each((_, day) => {
+			const $day = $(day);
+			$day.toggleClass("hidden", !$day.find(".email-item:not(.hidden)").length);
 		});
 
 		$wrapper.find(".no-emails").toggleClass("hidden", visible_count > 0);

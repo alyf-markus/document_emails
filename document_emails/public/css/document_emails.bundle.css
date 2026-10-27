@@ -1,0 +1,60 @@
+.document-emails .email-day-title {
+	margin-top: var(--margin-lg);
+	padding-bottom: var(--padding-xs);
+	border-bottom: 1px solid var(--border-color);
+	font-weight: var(--weight-semibold);
+	color: var(--text-color);
+}
+
+/* time on the left, everything else indented next to it */
+.document-emails .email-item {
+	display: grid;
+	grid-template-columns: 3.5em minmax(0, 1fr);
+	margin-top: var(--margin-sm);
+	padding: var(--padding-xs) var(--padding-sm);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	cursor: pointer;
+}
+
+.document-emails .email-item:hover {
+	background-color: var(--subtle-fg);
+}
+
+/* one row: text on the left (cut off with ...), pills and links on the right */
+.document-emails .email-line {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--margin-sm);
+}
+
+.document-emails .email-line > :first-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.document-emails .email-line > :last-child {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: var(--margin-sm);
+}
+
+.document-emails .email-time {
+	color: var(--text-color);
+}
+
+.document-emails .email-link {
+	--icon-stroke: var(--text-muted);
+}
+
+.document-emails .email-full {
+	max-height: 400px;
+	overflow: auto;
+	margin-top: var(--margin-xs);
+	padding-top: var(--padding-xs);
+	border-top: 1px solid var(--border-color);
+}
