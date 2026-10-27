@@ -8,7 +8,7 @@ app_license = "gpl-3.0"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -26,7 +26,7 @@ app_license = "gpl-3.0"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/document_emails/css/document_emails.css"
-# app_include_js = "/assets/document_emails/js/document_emails.js"
+app_include_js = "document_emails.bundle.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/document_emails/css/document_emails.css"
@@ -86,7 +86,8 @@ app_license = "gpl-3.0"
 # ------------
 
 # before_install = "document_emails.install.before_install"
-# after_install = "document_emails.install.after_install"
+after_install = "document_emails.install.create_email_tab"
+after_migrate = "document_emails.install.create_email_tab"
 
 # Uninstallation
 # ------------
